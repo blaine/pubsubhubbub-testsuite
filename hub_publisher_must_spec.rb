@@ -138,10 +138,10 @@ describe Hub, "interface for publishers" do
       wait_for { request != nil }
 
       request.should_not be_nil
-      request.headers.should have_key('X-Hub-Signature')
-      pending do
-        request.headers['X-Hub-Signature'].should == HMAC::SHA1.hexdigest(secret, 'the-content')
-      end
+      request.body.should_not be_nil
+      request.header.should have_key('x-hub-signature')
+      require('hmac/sha1')
+      request.header['x-hub-signature'].should == [HMAC::SHA1.hexdigest(secret, request.body)]
     end
   end
 
