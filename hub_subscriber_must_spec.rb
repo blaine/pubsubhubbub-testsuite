@@ -52,38 +52,11 @@ shared_examples_for "compliant hubs that obey request semantics" do
       doRequest(:topic => nil).should be_a_kind_of(Net::HTTPClientError)
     end
 
-    it "MUST return an error if the verify keyword is omitted from the request" do
-      doRequest(:verify => nil).should be_a_kind_of(Net::HTTPClientError)
-    end
-
-    it "MUST return an error if neither sync nor async are provided as values to any verify parameter" do
-      doRequest(:verify => 'invalid').should be_a_kind_of(Net::HTTPClientError)
-    end
-
-    it "MUST ignore verify keywords it does not understand" do
-      doRequest(:verify => ['sync', 'foobar']).should be_a_kind_of(Net::HTTPSuccess)
-    end
-
-    it "MUST make a synchronous verification attempt if only the 'sync' verify mode is allowed" do
-      request = nil
-      @subscriber.on_request = lambda { |req, res| request = req; nil }
-      doRequest.should be_a_kind_of(Net::HTTPNoContent)
-
-      # request should already be non-nil. Don't wait for it to change.
-      # This is not 100% fool-proof, since there is a small chance that the hub has lied to us, sent
-      # an HTTP 204 response, and then made the request very quickly.
-      #
-      # In order to fix this test properly, we'd need to tell subscribe() to
-      # actually look for the callback.
-
-      request.should_not be_nil
-    end
-
-    it "MUST make an asynchronous verification attempt if only the 'async' verify mode is allowed" do
+    it "MUST keep trying to make verification attempts if the subscriber returns an error" do
       request = nil
       @subscriber.on_request = lambda { |req, res| request = req; {'status' => 500} }
 
-      doRequest(:verify => 'async').should be_a_kind_of(Net::HTTPAccepted)
+      doRequest().should be_a_kind_of(Net::HTTPAccepted)
 
       # As with the previous test, the timing is a bit tricky here, but without ripping the whole
       # stack apart, let's build in some assumptions and assume that for an async request, the HTTP
@@ -92,10 +65,6 @@ shared_examples_for "compliant hubs that obey request semantics" do
       wait_for { request != nil }
 
       request.should_not be_nil
-    end
-
-    it "MUST not reject multiple verify keywords" do
-      doRequest(:verify => ['async', 'sync', 'other']).should be_a_kind_of(Net::HTTPSuccess)
     end
   end
 
@@ -170,7 +139,7 @@ shared_examples_for "compliant hubs that obey request semantics" do
 
     it "MUST return 202 Accepted if the request is pending" do
       @subscriber.on_request = lambda { |req, res| {'status' => 500} }
-      doRequest(:verify => 'async').should be_a_kind_of(Net::HTTPAccepted)
+      doRequest().should be_a_kind_of(Net::HTTPAccepted)
     end
 
     it "MUST return a client error (4xx) in case the client has made an invalid request" do
@@ -269,15 +238,6 @@ shared_examples_for "compliant hubs that obey request semantics" do
       doRequest.should be_a_kind_of(Net::HTTPClientError)
     end
 
-    it "MUST reject all non-success (2xx) response codes in synchronous mode" do
-      invalid_status_codes = [300..307, 400..417, 500..505].map { |i| i.entries }.flatten
-
-      invalid_status_codes.each do |code|
-        @subscriber.on_request = lambda { |req, res| {'status' => code} }
-        doRequest.should be_a_kind_of(Net::HTTPClientError)
-      end
-    end
-
     it "MUST NOT retry if the callback returns a 404 Not Found response" do
       attempts = 0
       @subscriber.on_request = lambda { |req, res|
@@ -285,7 +245,7 @@ shared_examples_for "compliant hubs that obey request semantics" do
         { 'status' => 404, 'body' => "I don't know what you're talking about." }
       }
 
-      doRequest(:verify => 'async', :params => {'hub.debug.retry_after' => 1})
+      doRequest(:params => {'hub.debug.retry_after' => 1})
 
       # Wait a few seconds for the hub to retry. To test a live hub, this delay
       # must be increased to a sufficiently long amount of time to detect the retry.
@@ -303,7 +263,7 @@ shared_examples_for "compliant hubs that obey request semantics" do
         attempts += 1
         { 'status' => 500, 'body' => 'Internal Server Error' }
       }
-      doRequest(:verify => 'async', :params => {'hub.debug.retry_after' => 1})
+      doRequest(:params => {'hub.debug.retry_after' => 1})
 
       wait_for(6) { attempts >= 3 }
       attempts.should >= 3
