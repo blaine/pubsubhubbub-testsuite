@@ -286,7 +286,7 @@ describe Hub do
 
       @subscriber.on_request = lambda { |req, res| {'status' => 500} }
 
-      doRequest.should be_a_kind_of(Net::HTTPClientError)
+      doRequest.should be_a_kind_of(Net::HTTPAccepted)
 
       new_sub_status = @hub.subscription_status(@topic_url, @subscriber.accept_callback_url)
       new_sub_status.should == 'none'
@@ -310,19 +310,22 @@ describe Hub do
 
     # Section 6.1.2
     it "MUST allow unsubscription from an active subscription" do
+      @request_mode = 'subscribe'
       doRequest.should be_a_kind_of(Net::HTTPNoContent)
       @hub.subscription_status(@topic_url, @subscriber.accept_callback_url).should == 'subscribed'
 
-      doRequest(:mode => 'unsubscribe').should be_a_kind_of(Net::HTTPNoContent)
+      @request_mode = 'unsubscribe'
+      doRequest.should be_a_kind_of(Net::HTTPNoContent)
       @hub.subscription_status(@topic_url, @subscriber.accept_callback_url).should == 'none'
     end
 
     it "MUST NOT de-activate a previously active subscription without verifying the request" do
-      doRequest.should be_a_kind_of(Net::HTTPNoContent)
+      @request_mode = 'subscribe'
+      doRequest(:mode => 'subscribe').should be_a_kind_of(Net::HTTPNoContent)
       @hub.subscription_status(@topic_url, @subscriber.accept_callback_url).should == 'subscribed'
 
       @subscriber.on_request = lambda { |req, res| {'status' => 500} }
-      doRequest(:mode => 'unsubscribe').should be_a_kind_of(Net::HTTPClientError)
+      doRequest(:mode => 'unsubscribe').should be_a_kind_of(Net::HTTPAccepted)
       @hub.subscription_status(@topic_url, @subscriber.accept_callback_url).should == 'subscribed'
     end
   end
