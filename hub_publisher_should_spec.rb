@@ -72,7 +72,7 @@ describe Hub, "interface for publishers" do
       request = req
       attempts += 1
       if attempts > 2
-        nil # allow the default (failure) response
+        {'status' => 200} # provide the successful response
       else
         {'status' => '500', 'body' => 'temporarily broken'}
       end
@@ -80,7 +80,7 @@ describe Hub, "interface for publishers" do
 
     @hub.publish(@topic_url)
 
-    wait_for { attempts >= 2 }
+    wait_for { attempts > 2 }
 
     attempts.should > 2
   end

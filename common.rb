@@ -56,7 +56,7 @@ def get_publish_notification(feed = 'first', format = 'atom')
   doRequest.should be_a_kind_of(Net::HTTPNoContent)
 
   request = nil
-  @subscriber.on_request = lambda { |req, res| req.body; request = req }
+  @subscriber.on_request = lambda { |req, res| req.body; request = req; { 'status' => 200 } }
 
   @hub.publish(@topic_url)
 

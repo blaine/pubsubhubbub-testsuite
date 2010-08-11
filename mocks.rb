@@ -20,6 +20,7 @@ class Subscriber
 
       desired_response = {} unless desired_response.respond_to?(:has_key?)
       
+
       if req.request_method == 'GET'
         res.status = desired_response['status'] || 200
 
@@ -92,7 +93,7 @@ class Publisher
 
   def set_content(which, format = 'atom')
     raw_content = File.read("feeds/#{which}.#{format}")
-    escaped_content = "'#{raw_content.gsub(/'/m, '\\\\\'')}'"
+    escaped_content = "\"#{raw_content.gsub(/"/m, "\\\\\"")}\""
     @content = eval(escaped_content)
   end
   

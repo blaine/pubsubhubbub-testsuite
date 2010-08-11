@@ -84,12 +84,12 @@ describe Hub, "interface for publishers" do
 
     feed.search('entry').length.should == 4
 
-    request = get_publish_notification('newentry')
-    feed = Nokogiri.parse(request.body)
+    request2 = get_publish_notification('newentry')
+    feed2 = Nokogiri.parse(request2.body)
 
-    new_entries = feed.search('entry')
+    new_entries = feed2.search('entry')
     new_entries.length.should == 1
-    new_entries.first.search('id').first.content.should == 'http://publisher.example.com/happycat26.xml'
+    new_entries.first.search('id').first.content.should == 'tag:publisher.example.com,2008:/happycat4'
   end
 
   it "MUST include changed entries as an Atom feed document in the body of the notification" do
@@ -102,8 +102,8 @@ describe Hub, "interface for publishers" do
     feed = Nokogiri.parse(request.body)
 
     updated_entries = feed.search('entry')
+    updated_entries.first.search('id').first.content.should == 'tag:publisher.example.com,2008:/happycat3'
     updated_entries.length.should == 1
-    updated_entries.first.search('id').first.content.should == ''
   end
 
   it "MUST reproduce the atom:id element exactly" do
